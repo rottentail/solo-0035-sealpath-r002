@@ -35,6 +35,11 @@
       "responsibility": "CRL接收与时点撤销判断"
     },
     {
+      "id": "ocsp",
+      "path": "internal/ocsp",
+      "responsibility": "状态响应机构登记、授权范围与响应接收"
+    },
+    {
       "id": "artifact",
       "path": "internal/artifact",
       "responsibility": "制品内容与摘要"
@@ -317,6 +322,102 @@
       "success": "拒绝新认可但保留历史读取",
       "failure": "过期修订和重复退役拒绝",
       "verification": "go run ./cmd/sample -workflow retire"
+    },
+    {
+      "id": "ocsp-responder",
+      "name": "登记状态响应机构",
+      "entry": "POST /v1/ocsp-responders",
+      "module_ids": [
+        "transport",
+        "ocsp",
+        "codec",
+        "repository"
+      ],
+      "steps": [
+        "从真实接口接收材料并检查引用",
+        "执行领域校验与证据处理",
+        "生成可观察结果或保存完整状态"
+      ],
+      "success": "按修订登记认可机构及授权范围",
+      "failure": "拒绝非法签发者、越权范围与过期修订",
+      "verification": "go run ./cmd/sample -workflow ocsp-responder"
+    },
+    {
+      "id": "ocsp-accept",
+      "name": "接收状态响应",
+      "entry": "POST /v1/ocsp-responses",
+      "module_ids": [
+        "transport",
+        "ocsp",
+        "codec",
+        "repository"
+      ],
+      "steps": [
+        "从真实接口接收材料并检查引用",
+        "执行领域校验与证据处理",
+        "生成可观察结果或保存完整状态"
+      ],
+      "success": "校验签名与授权后保存响应",
+      "failure": "拒绝错误签发者、越权响应与倒退时间",
+      "verification": "go run ./cmd/sample -workflow ocsp-accept"
+    },
+    {
+      "id": "ocsp-verify",
+      "name": "用响应形成决定并复核",
+      "entry": "POST /v1/decisions; GET /v1/decisions/{id}/bundle",
+      "module_ids": [
+        "transport",
+        "verification",
+        "ocsp",
+        "evidence",
+        "repository"
+      ],
+      "steps": [
+        "从真实接口接收材料并检查引用",
+        "执行领域校验与证据处理",
+        "生成可观察结果或保存完整状态"
+      ],
+      "success": "新鲜响应提供可用性并固定机构修订",
+      "failure": "证据不足仍为不确定，包可离线重放",
+      "verification": "go run ./cmd/sample -workflow ocsp-verify"
+    },
+    {
+      "id": "ocsp-conflict",
+      "name": "响应与撤销冲突",
+      "entry": "POST /v1/decisions",
+      "module_ids": [
+        "transport",
+        "verification",
+        "ocsp",
+        "revocation"
+      ],
+      "steps": [
+        "从真实接口接收材料并检查引用",
+        "执行领域校验与证据处理",
+        "生成可观察结果或保存完整状态"
+      ],
+      "success": "新鲜响应不抹掉已确认撤销",
+      "failure": "相反意见同时有效时仍保留撤销",
+      "verification": "go run ./cmd/sample -workflow ocsp-conflict"
+    },
+    {
+      "id": "ocsp-retire",
+      "name": "退役状态响应机构",
+      "entry": "POST /v1/ocsp-responders/{id}/retire",
+      "module_ids": [
+        "transport",
+        "ocsp",
+        "verification",
+        "repository"
+      ],
+      "steps": [
+        "从真实接口接收材料并检查引用",
+        "执行领域校验与证据处理",
+        "生成可观察结果或保存完整状态"
+      ],
+      "success": "拒新响应但保留历史决定依据",
+      "failure": "退役机构不因旧响应未过期而继续背书",
+      "verification": "go run ./cmd/sample -workflow ocsp-retire"
     }
   ],
   "complexity": {

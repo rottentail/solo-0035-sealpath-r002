@@ -27,6 +27,6 @@ func Capture(st model.State, request model.VerifyRequest) (model.Material, model
 		return out, request, model.Invalid("explicit verification time is required")
 	}
 	request.At = request.At.UTC()
-	out = model.Material{Certificates: st.Certificates, TrustSet: trust, Artifact: st.Artifacts[s.ArtifactID], Signature: s, Policy: p, Revocations: st.Revocations}
+	out = model.Material{Certificates: st.Certificates, TrustSet: trust, Artifact: st.Artifacts[s.ArtifactID], Signature: s, Policy: p, Revocations: st.Revocations, OCSPResponders: st.OCSPResponders, OCSPResponses: st.OCSPResponses}
 	return out, request, nil
 }

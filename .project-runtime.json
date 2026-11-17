@@ -58,6 +58,26 @@
     {
       "workflow_id": "retire",
       "command": "go run ./cmd/sample -workflow retire"
+    },
+    {
+      "workflow_id": "ocsp-responder",
+      "command": "go run ./cmd/sample -workflow ocsp-responder"
+    },
+    {
+      "workflow_id": "ocsp-accept",
+      "command": "go run ./cmd/sample -workflow ocsp-accept"
+    },
+    {
+      "workflow_id": "ocsp-verify",
+      "command": "go run ./cmd/sample -workflow ocsp-verify"
+    },
+    {
+      "workflow_id": "ocsp-conflict",
+      "command": "go run ./cmd/sample -workflow ocsp-conflict"
+    },
+    {
+      "workflow_id": "ocsp-retire",
+      "command": "go run ./cmd/sample -workflow ocsp-retire"
     }
   ]
 }

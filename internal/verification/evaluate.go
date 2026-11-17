@@ -5,6 +5,7 @@ import (
 	"sealpath/internal/chain"
 	"sealpath/internal/codec"
 	"sealpath/internal/model"
+	"sealpath/internal/ocsp"
 	"sealpath/internal/policy"
 	"sealpath/internal/revocation"
 	"sealpath/internal/signature"
@@ -12,7 +13,7 @@ import (
 )
 
 func Evaluate(material model.Material, request model.VerifyRequest) (model.Decision, error) {
-	out := model.Decision{Request: request, TrustRevision: material.TrustSet.Revision, Chain: []string{}, Revocations: []string{}, Checks: []model.Check{}, CreatedAt: time.Now().UTC()}
+	out := model.Decision{Request: request, TrustRevision: material.TrustSet.Revision, Chain: []string{}, Revocations: []string{}, OCSPResponses: []string{}, Checks: []model.Check{}, CreatedAt: time.Now().UTC()}
 	if request.At.IsZero() || request.SignatureID != material.Signature.ID || request.TrustSetID != material.TrustSet.ID || request.PolicyID != material.Policy.ID || request.PolicyVersion != material.Policy.Version {
 		return out, model.Invalid("request does not match captured evidence")
 	}
@@ -24,6 +25,11 @@ func Evaluate(material model.Material, request model.VerifyRequest) (model.Decis
 	}
 	if err := codec.ValidateRevocations(material.Revocations, material.Certificates); err != nil {
 		return out, model.Invalid("%v", err)
+	}
+	for _, response := range material.OCSPResponses {
+		if err := codec.ValidateOCSPResponse(response, material.OCSPResponders, material.Certificates); err != nil {
+			return out, model.Invalid("%v", err)
+		}
 	}
 	if codec.Digest(material.Artifact.Content) != material.Artifact.ID || material.Artifact.Size != len(material.Artifact.Content) || material.Signature.ArtifactID != material.Artifact.ID {
 		return out, model.Invalid("artifact identity does not match captured content")
@@ -52,11 +58,21 @@ func Evaluate(material model.Material, request model.VerifyRequest) (model.Decis
 		out.Chain = path.IDs
 		out.Checks = append(out.Checks, model.Check{Code: "certificate_path", Status: "pass", Detail: fmt.Sprintf("valid code-signing chain with %d certificates", len(path.IDs))})
 		for i := 0; i+1 < len(path.Certificates); i++ {
-			status, id := revocation.Check(path.Certificates[i], path.Certificates[i+1], material.Revocations, request.At)
+			cert, issuer := path.Certificates[i], path.Certificates[i+1]
+			crlResult := revocation.Inspect(cert, issuer, material.Revocations, request.At)
+			statusResult := ocsp.Inspect(path.IDs[i], material.Certificates, material.OCSPResponders, material.OCSPResponses, request.At)
+			status, _ := ocsp.Combine(crlResult, statusResult)
 			status.Code = fmt.Sprintf("revocation:%s", path.IDs[i])
 			out.Checks = append(out.Checks, status)
-			if id != "" {
-				out.Revocations = append(out.Revocations, id)
+			if crlResult.ID != "" {
+				out.Revocations = append(out.Revocations, crlResult.ID)
+			}
+			if statusResult.Fresh && statusResult.ResponseID != "" {
+				out.OCSPResponses = append(out.OCSPResponses, statusResult.ResponseID)
+				if out.ResponderRevision == nil {
+					out.ResponderRevision = map[string]int{}
+				}
+				out.ResponderRevision[statusResult.Responder] = statusResult.Revision
 			}
 		}
 	}

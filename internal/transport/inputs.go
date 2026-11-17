@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sealpath/internal/artifact"
 	"sealpath/internal/authority"
+	"sealpath/internal/ocsp"
 	"sealpath/internal/policy"
 	"sealpath/internal/signature"
 )
@@ -87,6 +88,50 @@ func (s *Server) importCRL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, err := s.Revocations.Import(input.IssuerID, []byte(input.PEM))
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, 201, out)
+}
+func (s *Server) registerResponder(w http.ResponseWriter, r *http.Request) {
+	var input ocsp.RegisterRequest
+	if err := readJSON(r, &input); err != nil {
+		s.fail(w, err)
+		return
+	}
+	out, err := s.Statuses.Register(input)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, 201, out)
+}
+func (s *Server) retireResponder(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		ExpectedRevision int `json:"expected_revision"`
+	}
+	if err := readJSON(r, &input); err != nil {
+		s.fail(w, err)
+		return
+	}
+	out, err := s.Statuses.Retire(r.PathValue("id"), input.ExpectedRevision)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, 200, out)
+}
+func (s *Server) importOCSP(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		ResponderID string `json:"responder_id"`
+		PEM         string `json:"pem"`
+	}
+	if err := readJSON(r, &input); err != nil {
+		s.fail(w, err)
+		return
+	}
+	out, err := s.Statuses.Import(input.ResponderID, []byte(input.PEM))
 	if err != nil {
 		s.fail(w, err)
 		return

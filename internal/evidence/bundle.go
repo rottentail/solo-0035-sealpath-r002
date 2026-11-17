@@ -49,9 +49,36 @@ func Replay(bundle model.Bundle) (ReplayResult, error) {
 		return out, err
 	}
 	original := bundle.Decision
-	if result.ID != original.ID || result.MaterialHash != original.MaterialHash || result.Verdict != original.Verdict || result.TrustRevision != original.TrustRevision || !reflect.DeepEqual(result.Chain, original.Chain) || !reflect.DeepEqual(result.Revocations, original.Revocations) || !reflect.DeepEqual(result.Checks, original.Checks) {
+	if result.ID != original.ID || result.MaterialHash != original.MaterialHash || result.Verdict != original.Verdict || result.TrustRevision != original.TrustRevision || !reflect.DeepEqual(result.Chain, original.Chain) || !equalStrings(result.Revocations, original.Revocations) || !equalStrings(result.OCSPResponses, original.OCSPResponses) || !equalRevisions(result.ResponderRevision, original.ResponderRevision) || !reflect.DeepEqual(result.Checks, original.Checks) {
 		return out, model.Invalid("decision cannot be reproduced from captured evidence")
 	}
 	out = ReplayResult{Matches: true, Verdict: result.Verdict, DecisionID: result.ID, Authenticity: "self-contained consistency; trust origin must be established separately"}
 	return out, nil
+}
+
+// equalStrings treats an absent slice and an empty slice as identical, so a
+// decision recorded before a field existed still replays against a bundle
+// that omits it during JSON round-trips.
+func equalStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func equalRevisions(a, b map[string]int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, v := range a {
+		if b[k] != v {
+			return false
+		}
+	}
+	return true
 }

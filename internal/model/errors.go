@@ -29,5 +29,5 @@ func ValidateID(id string) error {
 	return nil
 }
 func NewState() State {
-	return State{Version: 1, Certificates: map[string]Certificate{}, TrustSets: map[string]TrustSet{}, Artifacts: map[string]Artifact{}, Signatures: map[string]Signature{}, Revocations: map[string]RevocationList{}, Policies: map[string][]Policy{}, Decisions: map[string]Decision{}, Materials: map[string]Material{}, Events: []Event{}}
+	return State{Version: 1, Certificates: map[string]Certificate{}, TrustSets: map[string]TrustSet{}, Artifacts: map[string]Artifact{}, Signatures: map[string]Signature{}, Revocations: map[string]RevocationList{}, OCSPResponders: map[string]OCSPResponder{}, OCSPResponses: map[string]OCSPResponse{}, Policies: map[string][]Policy{}, Decisions: map[string]Decision{}, Materials: map[string]Material{}, Events: []Event{}}
 }

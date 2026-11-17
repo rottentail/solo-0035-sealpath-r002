@@ -8,6 +8,7 @@ import (
 	"sealpath/internal/authority"
 	"sealpath/internal/evidence"
 	"sealpath/internal/model"
+	"sealpath/internal/ocsp"
 	"sealpath/internal/policy"
 	"sealpath/internal/repository"
 	"sealpath/internal/revocation"
@@ -22,6 +23,7 @@ type Server struct {
 	Artifacts   artifact.Service
 	Signatures  signature.Service
 	Revocations revocation.Service
+	Statuses    ocsp.Service
 	Policies    policy.Service
 	Verifier    verification.Service
 	Evidence    evidence.Service
@@ -29,7 +31,7 @@ type Server struct {
 }
 
 func New(store *repository.Store, logger *slog.Logger) *Server {
-	return &Server{Store: store, Authority: authority.Service{Store: store}, Artifacts: artifact.Service{Store: store}, Signatures: signature.Service{Store: store}, Revocations: revocation.Service{Store: store}, Policies: policy.Service{Store: store}, Verifier: verification.Service{Store: store}, Evidence: evidence.Service{Store: store}, Logger: logger}
+	return &Server{Store: store, Authority: authority.Service{Store: store}, Artifacts: artifact.Service{Store: store}, Signatures: signature.Service{Store: store}, Revocations: revocation.Service{Store: store}, Statuses: ocsp.Service{Store: store}, Policies: policy.Service{Store: store}, Verifier: verification.Service{Store: store}, Evidence: evidence.Service{Store: store}, Logger: logger}
 }
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
@@ -46,6 +48,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/signatures/{id}", s.getSignature)
 	mux.HandleFunc("POST /v1/revocations", s.importCRL)
 	mux.HandleFunc("GET /v1/revocations", s.listCRLs)
+	mux.HandleFunc("POST /v1/ocsp-responders", s.registerResponder)
+	mux.HandleFunc("GET /v1/ocsp-responders", s.listResponders)
+	mux.HandleFunc("POST /v1/ocsp-responders/{id}/retire", s.retireResponder)
+	mux.HandleFunc("POST /v1/ocsp-responses", s.importOCSP)
+	mux.HandleFunc("GET /v1/ocsp-responses", s.listOCSP)
 	mux.HandleFunc("POST /v1/policies", s.createPolicy)
 	mux.HandleFunc("GET /v1/policies/{id}", s.getPolicies)
 	mux.HandleFunc("POST /v1/decisions", s.verify)

@@ -9,11 +9,12 @@ import (
 	"sealpath/internal/policy"
 	"sealpath/internal/repository"
 	"sealpath/internal/signature"
+	"strings"
 )
 
 func walk(c *client, s Samples, workflow, statePath string) (map[string]any, error) {
 	result := map[string]any{"workflow": workflow}
-	for _, value := range []string{s.Root, s.Intermediate, s.Signer} {
+	for _, value := range []string{s.Root, s.Intermediate, s.Signer, s.Responder} {
 		var cert model.Certificate
 		if err := c.call("POST", "/v1/certificates", map[string]string{"pem": value}, &cert); err != nil {
 			return nil, err
@@ -76,6 +77,9 @@ func walk(c *client, s Samples, workflow, statePath string) (map[string]any, err
 	if workflow == "revocation" {
 		result["accepted_crls"] = 2
 		return result, nil
+	}
+	if strings.HasPrefix(workflow, "ocsp") {
+		return walkOCSP(c, s, workflow, request, result)
 	}
 	var d model.Decision
 	if err := c.call("POST", "/v1/decisions", request, &d); err != nil {

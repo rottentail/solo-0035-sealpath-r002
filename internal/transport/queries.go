@@ -92,6 +92,32 @@ func (s *Server) listCRLs(w http.ResponseWriter, r *http.Request) {
 	sort.Slice(values, func(i, j int) bool { return values[i].ID < values[j].ID })
 	writeJSON(w, 200, values)
 }
+func (s *Server) listResponders(w http.ResponseWriter, r *http.Request) {
+	state, err := s.Store.Snapshot()
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	values := []model.OCSPResponder{}
+	for _, v := range state.OCSPResponders {
+		values = append(values, v)
+	}
+	sort.Slice(values, func(i, j int) bool { return values[i].ID < values[j].ID })
+	writeJSON(w, 200, values)
+}
+func (s *Server) listOCSP(w http.ResponseWriter, r *http.Request) {
+	state, err := s.Store.Snapshot()
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	values := []model.OCSPResponse{}
+	for _, v := range state.OCSPResponses {
+		values = append(values, v)
+	}
+	sort.Slice(values, func(i, j int) bool { return values[i].ID < values[j].ID })
+	writeJSON(w, 200, values)
+}
 func (s *Server) getPolicies(w http.ResponseWriter, r *http.Request) {
 	state, err := s.Store.Snapshot()
 	if err != nil {

@@ -45,6 +45,8 @@ func (s Service) Compare(left, right string) (Comparison, error) {
 	add("trust_roots", ma.TrustSet.Roots, mb.TrustSet.Roots)
 	add("chain", a.Chain, b.Chain)
 	add("crls", a.Revocations, b.Revocations)
+	add("ocsp_responses", a.OCSPResponses, b.OCSPResponses)
+	add("responder_revision", a.ResponderRevision, b.ResponderRevision)
 	checksA, checksB := map[string]model.Check{}, map[string]model.Check{}
 	for _, c := range a.Checks {
 		checksA[c.Code] = c

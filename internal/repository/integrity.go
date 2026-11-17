@@ -10,7 +10,7 @@ func ValidateState(s model.State) error {
 	if s.Version != 1 {
 		return fmt.Errorf("unsupported state version %d", s.Version)
 	}
-	if s.Certificates == nil || s.TrustSets == nil || s.Artifacts == nil || s.Signatures == nil || s.Revocations == nil || s.Policies == nil || s.Decisions == nil || s.Materials == nil {
+	if s.Certificates == nil || s.TrustSets == nil || s.Artifacts == nil || s.Signatures == nil || s.Revocations == nil || s.OCSPResponders == nil || s.OCSPResponses == nil || s.Policies == nil || s.Decisions == nil || s.Materials == nil {
 		return fmt.Errorf("state collections must not be null")
 	}
 	for id, c := range s.Certificates {
@@ -50,6 +50,22 @@ func ValidateState(s model.State) error {
 	}
 	if err := codec.ValidateRevocations(s.Revocations, s.Certificates); err != nil {
 		return err
+	}
+	for id, responder := range s.OCSPResponders {
+		if responder.ID != id {
+			return fmt.Errorf("OCSP responder identity mismatch")
+		}
+		if err := codec.ValidateOCSPResponder(responder, s.Certificates); err != nil {
+			return err
+		}
+	}
+	for id, response := range s.OCSPResponses {
+		if response.ID != id {
+			return fmt.Errorf("OCSP response identity mismatch")
+		}
+		if err := codec.ValidateOCSPResponse(response, s.OCSPResponders, s.Certificates); err != nil {
+			return err
+		}
 	}
 	for id, versions := range s.Policies {
 		for i, p := range versions {
